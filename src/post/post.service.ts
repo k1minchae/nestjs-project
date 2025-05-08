@@ -22,6 +22,14 @@ export class PostService {
     private readonly imageRepo: Repository<Images>,
   ) {}
 
+  private calculatePopularityScore(
+    viewCount: number,
+    likeCount: number,
+    commentCount: number,
+  ): number {
+    return viewCount + likeCount * 2 + commentCount * 1.5;
+  }
+
   async getPostList(query: PostQueryListDto): Promise<PostResponseListDto[]> {
     const { sort, page, limit } = query;
     const skip = (page - 1) * limit;
@@ -32,19 +40,20 @@ export class PostService {
         order: { created_at: 'DESC' },
         skip,
         take: limit,
+        relations: ['likes', 'comments'], // ✅ 연관 로드
       });
 
       return posts.map((post) => ({
         id: post.post_id,
         title: post.post_title,
-        view_count: post.view_count,
-        like_count: post.likes.length,
-        comment_count: post.comments.length,
+        view_count: post.view_count ?? 0,
+        like_count: post.likes?.length ?? 0,
+        comment_count: post.comments?.length ?? 0,
         created_at: post.created_at,
       }));
     }
 
-    // 인기순 정렬 (가중치 계산)
+    // 인기순 정렬
     const posts = await this.postRepo
       .createQueryBuilder('post')
       .leftJoin('post.comments', 'comment')
@@ -56,21 +65,24 @@ export class PostService {
         `(post.view_count + COUNT(DISTINCT like.id) * 2 + COUNT(DISTINCT comment.id) * 1.5)`,
         'popularity_score',
       )
-      .groupBy('post.id')
+      .groupBy('post.post_id')
       .orderBy('popularity_score', 'DESC')
       .skip(skip)
       .take(limit)
       .getMany();
 
-    return posts.map((post) => ({
+    return posts.map((post: any) => ({
       id: post.post_id,
       title: post.post_title,
-      view_count: post.view_count,
-      like_count: post.likes.length,
-      comment_count: post.comments.length,
+      view_count: post.view_count ?? 0,
+      like_count: post.like_count ?? 0,
+      comment_count: post.comment_count ?? 0,
       created_at: post.created_at,
-      popularity_score:
-        post.view_count + post.likes.length * 2 + post.comments.length * 1.5,
+      popularity_score: this.calculatePopularityScore(
+        post.view_count ?? 0,
+        post.like_count ?? 0,
+        post.comment_count ?? 0,
+      ),
     }));
   }
 
@@ -90,7 +102,7 @@ export class PostService {
 
     const savedPost = await this.postRepo.save(post);
 
-    // ✅ 이미지 URL 등록 (없을 수도 있으므로 안전하게 처리)
+    // 이미지 URL 등록 (없을 수도 있으므로 안전하게 처리)
     const imageUrls = Array.isArray(dto.images)
       ? dto.images
       : dto.images
@@ -107,7 +119,7 @@ export class PostService {
       await this.imageRepo.save(imageEntities);
     }
 
-    // ✅ 파일 업로드 처리 (files는 Express.Multer.File[]이므로 바로 사용 가능)
+    // 파일 업로드 처리 (files는 Express.Multer.File[])
     if (files?.length) {
       const fileEntities = files.map((file) =>
         this.fileRepo.create({
