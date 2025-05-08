@@ -49,6 +49,7 @@ $ npm run start:prod
 1. **회원가입** : **[post]** /user/signup
 
 ```
+body
 {
     "email": "string",
     "password": "string",
@@ -62,8 +63,18 @@ $ npm run start:prod
 2. **로그인** : **[post]** /user/login
 
 ```
+body
 {
     "email": "string",
     "password": "string"
+}
+```
+
+3. **정보 조회** : **[get]** /user/{userId}
+
+```
+headers
+{
+    Authorization: Bearer
 }
 ```

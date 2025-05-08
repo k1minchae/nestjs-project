@@ -37,6 +37,7 @@ async function bootstrap() {
     .setDescription('게시판 API 문서입니다')
     .setVersion('1.0')
     .addTag('user')
+    .addBearerAuth() // bearer token 인증 추가
     .build();
 
   const document = SwaggerModule.createDocument(app, config);

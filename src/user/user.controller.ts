@@ -14,6 +14,12 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from '../auth/auth.service';
 import { AuthGuard } from '@nestjs/passport';
+import {
+  ApiBearerAuth,
+  ApiOperation,
+  ApiParam,
+  ApiResponse,
+} from '@nestjs/swagger';
 
 interface JwtPayload {
   user_id: number;
@@ -53,6 +59,13 @@ export class UserController {
 
   @UseGuards(AuthGuard('jwt'))
   @Get(':id')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '유저 정보 조회',
+    description:
+      '특정 유저의 정보를 조회합니다. 본인일 경우 이메일이 포함됩니다.',
+  })
+  @ApiParam({ name: 'id', type: 'number', description: '조회할 유저의 ID' })
   async getUserById(
     @Param('id') id: string,
     @Req() req: Request & { user?: JwtPayload }, // ✅ 타입 명시
