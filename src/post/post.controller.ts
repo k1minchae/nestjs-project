@@ -89,6 +89,31 @@ export class PostController {
     return this.postService.createPost(dto, files, userId);
   }
 
+  // 게시글 검색
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @Get('/search')
+  @ApiOperation({ summary: '게시글 검색' })
+  @ApiQuery({ name: 'keyword', required: true, description: '검색어' })
+  @ApiQuery({
+    name: 'type',
+    enum: ['title', 'content', 'nickname'],
+    required: true,
+    description: '검색 조건',
+  })
+  @ApiQuery({ name: 'page', required: false, example: 1 })
+  @ApiQuery({ name: 'limit', required: false, example: 10 })
+  async searchPosts(
+    @Query('keyword') keyword: string,
+    @Query('type') type: 'title' | 'content' | 'nickname',
+    @Query('page') page = 1,
+    @Query('limit') limit = 10,
+    @Req() req: any,
+  ) {
+    const userId = req.user.user_id;
+    return this.postService.searchPosts(keyword, type, page, limit);
+  }
+
   // 게시글 상세 조회
   @UseGuards(AuthGuard('jwt'))
   @ApiBearerAuth()

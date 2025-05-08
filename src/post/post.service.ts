@@ -5,6 +5,7 @@ import {
   NotFoundException,
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
+import { Brackets } from 'typeorm';
 import { Post } from './post.entity';
 import { Repository } from 'typeorm';
 import { PostResponseListDto } from './dto/post.response.list.dto';
@@ -384,5 +385,66 @@ export class PostService {
         { is_delete: true },
       );
     }
+  }
+
+  // 게시글 검색 기능
+  async searchPosts(
+    query: string,
+    type: 'title' | 'content' | 'nickname',
+    page = 1,
+    limit = 10,
+  ): Promise<PostResponseListDto[]> {
+    const skip = (page - 1) * limit;
+
+    // 최소 글자수 2자 이상
+    if (query.length < 2) {
+      throw new NotFoundException('검색어는 2자 이상이어야 합니다.');
+    }
+
+    const posts = await this.postRepo
+      .createQueryBuilder('post')
+      .leftJoinAndSelect('post.user', 'user')
+      .leftJoinAndSelect('post.images', 'images', 'images.is_delete = false')
+      .leftJoinAndSelect('post.files', 'files', 'files.is_delete = false')
+      .leftJoinAndSelect('post.likes', 'likes')
+      .leftJoinAndSelect(
+        'post.comments',
+        'comments',
+        'comments.is_delete = false',
+      )
+      .where('post.is_delete = false')
+      .andWhere(
+        new Brackets((qb) => {
+          if (type === 'title') {
+            qb.where('post.post_title ILIKE :query', { query: `%${query}%` });
+          } else if (type === 'content') {
+            qb.where('post.post_content ILIKE :query', { query: `%${query}%` });
+          } else if (type === 'nickname') {
+            qb.where('user.nickname ILIKE :query', { query: `%${query}%` });
+          } else {
+            // 기본: 제목 + 내용 + 닉네임 전체 검색
+            qb.where('post.post_title ILIKE :query', { query: `%${query}%` })
+              .orWhere('post.post_content ILIKE :query', {
+                query: `%${query}%`,
+              })
+              .orWhere('user.nickname ILIKE :query', { query: `%${query}%` });
+          }
+        }),
+      )
+      .orderBy('post.created_at', 'DESC')
+      .skip(skip)
+      .take(limit)
+      .getMany();
+
+    return posts.map((post) => ({
+      id: post.post_id,
+      title: post.post_title,
+      view_count: post.views ?? 0,
+      like_count: post.likes?.filter((l) => l.liked).length ?? 0,
+      comment_count: post.comments?.filter((c) => !c.is_delete).length ?? 0,
+      image_count: post.images?.filter((i) => !i.is_delete).length ?? 0,
+      file_count: post.files?.filter((f) => !f.is_delete).length ?? 0,
+      created_at: post.created_at,
+    }));
   }
 }
