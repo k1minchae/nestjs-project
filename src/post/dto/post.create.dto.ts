@@ -11,7 +11,7 @@ export class CreatePostDto {
   @ApiProperty({
     description: '이미지 URL 배열',
     type: [String],
-    example: ['https://example.com/image1.jpg'],
+    example: ['https://picsum.photos/200/300', 'https://picsum.photos/300/300'],
   })
-  images: string[];
+  images?: string[];
 }

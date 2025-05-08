@@ -8,6 +8,8 @@ import { PostQueryListDto } from './dto/post.query.list.dto';
 import { CreatePostDto } from './dto/post.create.dto';
 import { Files } from '../files/file.entity';
 import { Images } from '../files/image.entity';
+import { v4 as uuid } from 'uuid';
+import { extname } from 'path';
 
 @Injectable()
 export class PostService {
@@ -111,11 +113,7 @@ export class PostService {
     const savedPost = await this.postRepo.save(post);
 
     // 이미지 URL 등록 (없을 수도 있으므로 안전하게 처리)
-    const imageUrls = Array.isArray(dto.images)
-      ? dto.images
-      : dto.images
-        ? [dto.images]
-        : [];
+    const imageUrls = Array.isArray(dto.images) ? dto.images : [];
 
     if (imageUrls.length > 0) {
       const imageEntities = imageUrls.map((url) =>
@@ -129,15 +127,23 @@ export class PostService {
 
     // 파일 업로드 처리 (files는 Express.Multer.File[])
     if (files?.length) {
-      const fileEntities = files.map((file) =>
-        this.fileRepo.create({
+      const timestamp = Date.now();
+      const baseDir = 'uploads';
+
+      const fileEntities = files.map((file) => {
+        const ext = extname(file.originalname);
+        const random = uuid();
+        const filePath = `${baseDir}/${userId}/${ext}/${timestamp}${random}`;
+
+        return this.fileRepo.create({
           file_title: file.originalname,
-          file_path: file.path,
+          file_path: filePath,
           file_size: file.size,
           file_type: file.mimetype,
           post: savedPost,
-        }),
-      );
+        });
+      });
+
       await this.fileRepo.save(fileEntities);
     }
 
