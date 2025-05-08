@@ -220,13 +220,13 @@ export class PostService {
         },
         // 삭제된 댓글은 제외
         replies: comments
-          .filter(
-            (c) => c.parent?.comment_id === parent.comment_id && !c.is_delete,
-          )
+          .filter((c) => c.parent?.comment_id === parent.comment_id)
           .map(
             (reply): ReplyCommentDto => ({
               comment_id: reply.comment_id,
-              content: reply.comment_content,
+              content: reply.is_delete
+                ? '삭제된 댓글입니다'
+                : reply.comment_content,
               created_at: reply.created_at,
               parent_comment_id: parent.comment_id,
               parent_user: {
