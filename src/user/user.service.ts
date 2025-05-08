@@ -19,8 +19,12 @@ export class UserService {
     private readonly userRepo: Repository<User>,
   ) {}
 
+  /**
+   * 회원가입
+   * - 이메일 중복 확인
+   * - 비밀번호 해싱 후 저장
+   */
   async createUser(dto: CreateUserDto): Promise<User> {
-    // 중복 이메일 존재 여부 확인 (is_delete = false 인 경우만)
     const existing = await this.userRepo.findOne({
       where: {
         email: dto.email,
@@ -28,17 +32,14 @@ export class UserService {
       },
     });
 
-    // 비밀번호 유효성 검사
-    if (typeof dto.password !== 'string') {
-      throw new BadRequestException('비밀번호는 문자열로 전달해주세요.');
-    }
-
-    // 이메일 중복 검사
     if (existing) {
       throw new ConflictException('이미 사용 중인 이메일입니다.');
     }
 
-    // 저장
+    if (typeof dto.password !== 'string') {
+      throw new BadRequestException('비밀번호는 문자열로 전달해주세요.');
+    }
+
     const hashedPw = await bcrypt.hash(dto.password, 10);
 
     const user = this.userRepo.create({
@@ -50,7 +51,12 @@ export class UserService {
     return this.userRepo.save(user);
   }
 
-  async login(dto: LoginDto): Promise<User> {
+  /**
+   * 유저 인증
+   * - 이메일 & 비밀번호 확인
+   * - 유저 정보만 반환 (토큰 발급은 AuthService에서)
+   */
+  async validateUser(dto: LoginDto): Promise<User> {
     const user = await this.userRepo.findOne({
       where: {
         email: dto.email,
@@ -70,7 +76,12 @@ export class UserService {
     return user;
   }
 
+  /**
+   * 사용자 ID로 조회
+   */
   async findById(id: number): Promise<User | null> {
-    return this.userRepo.findOne({ where: { user_id: id, is_delete: false } });
+    return this.userRepo.findOne({
+      where: { user_id: id, is_delete: false },
+    });
   }
 }

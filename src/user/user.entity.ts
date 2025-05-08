@@ -25,4 +25,7 @@ export class User {
 
   @Column({ nullable: true })
   updated_at?: Date;
+
+  @Column({ nullable: true, type: 'text' }) // ← type도 명시하면 더 안전
+  refresh_token: string | null;
 }
