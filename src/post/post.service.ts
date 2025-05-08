@@ -63,7 +63,7 @@ export class PostService {
       return posts.map((post) => ({
         id: post.post_id,
         title: post.post_title,
-        view_count: post.view_count ?? 0,
+        view_count: post.views ?? 0,
         like_count: post.likes?.length ?? 0,
         comment_count: post.comments?.length ?? 0,
         image_count: post.images?.length ?? 0,
@@ -233,11 +233,14 @@ export class PostService {
           ),
       }));
 
+    // 게시글 조회수 증가
+    await this.postRepo.increment({ post_id: postId }, 'views', 1);
+
     return {
       id: post.post_id,
       title: post.post_title,
       content: post.post_content,
-      view_count: post.view_count ?? 0,
+      view_count: post.views ?? 0,
       like_count: likeCount,
       is_liked_by_me: isLikedByMe,
       author: {

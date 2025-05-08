@@ -41,7 +41,6 @@ export class Post {
 
   @Column({ nullable: true })
   updated_at?: Date;
-  view_count: number;
 
   @OneToMany(() => Comment, (comment) => comment.post)
   comments: Comment[];
