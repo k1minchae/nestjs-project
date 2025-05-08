@@ -44,15 +44,26 @@ $ npm run start:dev
 $ npm run start:prod
 ```
 
-## Run tests
+## Api 명세서
 
-```bash
-# unit tests
-$ npm run test
+1. **회원가입** : **[post]** /user/signup
 
-# e2e tests
-$ npm run test:e2e
+```
+{
+    "email": "string",
+    "password": "string",
+    "name": "string",
+    "nickname": "string"
+}
+```
 
-# test coverage
-$ npm run test:cov
+<br>
+
+2. **로그인** : **[post]** /user/login
+
+```
+{
+    "email": "string",
+    "password": "string"
+}
 ```
