@@ -58,11 +58,12 @@ export class UserController {
     @Res({ passthrough: true }) res: Response, // ✅ Express 응답 객체 사용
   ) {
     const user = await this.userService.validateUser(dto);
+    // console.log('user:', user);
     const tokens = this.authService.generateTokens({
       user_id: user.user_id,
       email: user.email,
     });
-
+    // console.log('tokens:', tokens);
     await this.authService.saveRefreshToken(user.user_id, tokens.refreshToken);
 
     // ✅ Refresh Token을 HttpOnly 쿠키에 설정
@@ -130,6 +131,7 @@ export class UserController {
   })
   @ApiResponse({ status: 200, description: '로그아웃 성공' })
   async logout(@Req() req: Request & { user: { user_id: number } }) {
+    // console.log('user in request:', req.user);
     await this.authService.removeRefreshToken(req.user.user_id);
     return { message: '로그아웃 완료' };
   }

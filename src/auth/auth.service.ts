@@ -40,6 +40,9 @@ export class AuthService {
    * Refresh Token 무효화 (로그아웃)
    */
   async removeRefreshToken(userId: number): Promise<void> {
+    if (!userId) {
+      throw new UnauthorizedException('유저 정보를 찾을 수 없습니다.');
+    }
     await this.userRepo.update(userId, {
       refresh_token: null as string | null,
     });
