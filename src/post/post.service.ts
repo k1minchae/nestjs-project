@@ -112,8 +112,13 @@ export class PostService {
 
     const savedPost = await this.postRepo.save(post);
 
-    // 이미지 URL 등록 (없을 수도 있으므로 안전하게 처리)
-    const imageUrls = Array.isArray(dto.images) ? dto.images : [];
+    // 이미지 URL 등록 (없을 수도 있으므로)
+    const imageUrls: string[] = Array.isArray(dto.images)
+      ? dto.images
+      : typeof dto.images === 'string'
+        ? (dto.images as string).split(',').map((url) => url.trim())
+        : [];
+    // console.log('이미지 url 받아오기 @@@@: ', imageUrls);
 
     if (imageUrls.length > 0) {
       const imageEntities = imageUrls.map((url) =>
@@ -123,6 +128,7 @@ export class PostService {
         }),
       );
       await this.imageRepo.save(imageEntities);
+      // console.log('이미지 엔티티들 @@@@: ', imageEntities);
     }
 
     // 파일 업로드 처리 (files는 Express.Multer.File[])
