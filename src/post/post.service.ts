@@ -123,7 +123,7 @@ export class PostService {
     const post = this.postRepo.create({
       post_title: dto.post_title,
       post_content: dto.post_content,
-      user,
+      user: { user_id: user.user_id },
       created_at: new Date(),
     });
 
