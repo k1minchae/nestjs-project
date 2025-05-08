@@ -1,16 +1,25 @@
 import { Like } from 'src/like/like.entity';
-import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  OneToMany,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 import { Files } from 'src/files/file.entity';
 import { Images } from 'src/files/image.entity';
 import { Comment } from 'src/comment/comment.entity';
+import { User } from 'src/user/user.entity';
 
 @Entity('Post')
 export class Post {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   post_id: number;
 
-  @Column()
-  user_id: number;
+  @ManyToOne(() => User, (user) => user.posts, { eager: false })
+  @JoinColumn({ name: 'user_id' }) // 외래키 컬럼 명시
+  user: User;
 
   @Column({ default: 0 })
   views: number;
