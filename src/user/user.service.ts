@@ -69,4 +69,8 @@ export class UserService {
 
     return user;
   }
+
+  async findById(id: number): Promise<User | null> {
+    return this.userRepo.findOne({ where: { user_id: id, is_delete: false } });
+  }
 }
