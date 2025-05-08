@@ -4,6 +4,8 @@ import {
   Controller,
   Get,
   Param,
+  ParseIntPipe,
+  Patch,
   Post,
   Query,
   Req,
@@ -28,6 +30,7 @@ import { AuthGuard } from '@nestjs/passport';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { CreatePostDto } from './dto/post.create.dto';
 import { PostDetailResponseDto } from './dto/post.detail.response.dto';
+import { UpdatePostDto } from './dto/post.update.dto';
 
 @ApiTags('Post')
 @Controller('/post')
@@ -106,5 +109,45 @@ export class PostController {
   ): Promise<PostDetailResponseDto> {
     const userId = req.user.user_id;
     return this.postService.getPostDetail(id, userId);
+  }
+
+  // 게시글 수정
+  @UseGuards(AuthGuard('jwt'))
+  @Patch(':postId')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '게시글 수정 (이미지 및 파일 포함)',
+    description:
+      '작성자만 수정할 수 있습니다. 이미지 URL 및 업로드 파일 모두 수정 가능합니다.',
+  })
+  @ApiConsumes('multipart/form-data')
+  @ApiBody({
+    schema: {
+      type: 'object',
+      properties: {
+        post_title: { type: 'string' },
+        post_content: { type: 'string' },
+        images: {
+          type: 'array',
+          items: { type: 'string' },
+        },
+        files: {
+          type: 'array',
+          items: { type: 'string', format: 'binary' },
+        },
+      },
+    },
+  })
+  @UseInterceptors(FilesInterceptor('files'))
+  @ApiResponse({ status: 200, description: '수정 성공' })
+  async updatePost(
+    @Param('postId', ParseIntPipe) postId: number,
+    @Body() dto: UpdatePostDto,
+    @Req() req: any,
+    @UploadedFiles() files: Express.Multer.File[],
+  ) {
+    console.log('DTO 확인@@@@: ', dto);
+    await this.postService.updatePost(postId, req.user.user_id, dto, files);
+    return { message: '게시글이 수정되었습니다.' };
   }
 }

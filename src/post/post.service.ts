@@ -1,5 +1,9 @@
 // src/post/post.service.ts
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Post } from './post.entity';
 import { Repository } from 'typeorm';
@@ -18,7 +22,7 @@ import {
   ReplyCommentDto,
 } from './dto/post.detail.response.dto';
 import { User } from 'src/user/user.entity';
-import { find } from 'rxjs';
+import { UpdatePostDto } from './dto/post.update.dto';
 
 @Injectable()
 export class PostService {
@@ -64,10 +68,10 @@ export class PostService {
         id: post.post_id,
         title: post.post_title,
         view_count: post.views ?? 0,
-        like_count: post.likes?.length ?? 0,
-        comment_count: post.comments?.length ?? 0,
-        image_count: post.images?.length ?? 0,
-        file_count: post.files?.length ?? 0,
+        like_count: post.likes?.filter((c) => c.liked).length ?? 0,
+        comment_count: post.comments?.filter((c) => !c.is_delete).length ?? 0,
+        image_count: post.images?.filter((i) => !i.is_delete).length ?? 0,
+        file_count: post.files?.filter((f) => !f.is_delete).length ?? 0,
         created_at: post.created_at,
       }));
     }
@@ -97,16 +101,16 @@ export class PostService {
     return posts.map((post: any) => ({
       id: post.post_id,
       title: post.post_title,
-      view_count: post.view_count ?? 0,
-      like_count: post.like_count ?? 0,
-      comment_count: post.comment_count ?? 0,
-      image_count: post.images?.length ?? 0,
-      file_count: post.files?.length ?? 0,
+      view_count: post.views ?? 0,
+      like_count: post.likes?.filter((c) => c.liked).length ?? 0,
+      comment_count: post.comments?.filter((c) => !c.is_delete).length ?? 0,
+      image_count: post.images?.filter((i) => !i.is_delete).length ?? 0,
+      file_count: post.files?.filter((f) => !f.is_delete).length ?? 0,
       created_at: post.created_at,
       popularity_score: this.calculatePopularityScore(
         post.view_count ?? 0,
-        post.like_count ?? 0,
-        post.comment_count ?? 0,
+        post.likes?.filter((c) => c.liked).length ?? 0,
+        post.comments?.filter((c) => !c.is_delete).length ?? 0,
       ),
     }));
   }
@@ -213,8 +217,11 @@ export class PostService {
           user_id: parent.user.user_id,
           nickname: parent.user.nickname,
         },
+        // 삭제된 댓글은 제외
         replies: comments
-          .filter((c) => c.parent?.comment_id === parent.comment_id)
+          .filter(
+            (c) => c.parent?.comment_id === parent.comment_id && !c.is_delete,
+          )
           .map(
             (reply): ReplyCommentDto => ({
               comment_id: reply.comment_id,
@@ -260,5 +267,84 @@ export class PostService {
       })),
       comments: parentComments,
     };
+  }
+
+  // 게시글 수정
+  async updatePost(
+    postId: number,
+    userId: number,
+    dto: UpdatePostDto,
+    files: Express.Multer.File[],
+  ): Promise<void> {
+    const post = await this.postRepo.findOne({
+      where: { post_id: postId },
+      relations: ['user', 'images', 'files'],
+    });
+    console.log('수정할 게시글 @@@@: ', post);
+
+    if (!post || post.is_delete)
+      throw new NotFoundException('게시글이 존재하지 않습니다.');
+    if (post.user_id !== userId)
+      throw new ForbiddenException('수정 권한이 없습니다.');
+
+    post.post_title = dto.post_title ?? post.post_title;
+    post.post_content = dto.post_content ?? post.post_content;
+    post.updated_at = new Date();
+    await this.postRepo.save(post);
+
+    console.log('기존 이미지 @@@@: ', post.images);
+
+    // 이미지 전체 삭제 후 재등록
+    if (post.images?.length) {
+      await this.imageRepo.update(
+        { post: { post_id: postId } },
+        { is_delete: true },
+      );
+    }
+    const imageUrls: string[] = Array.isArray(dto.images)
+      ? dto.images.filter((url) => url && url.trim() !== '')
+      : typeof dto.images === 'string'
+        ? (dto.images as string)
+            .split(',')
+            .map((url) => url.trim())
+            .filter((url) => url !== '')
+        : [];
+
+    console.log('수정할 이미지 url @@@@: ', imageUrls);
+
+    if (imageUrls.length > 0) {
+      const imageEntities = imageUrls.map((url) =>
+        this.imageRepo.create({
+          image_url: url,
+          post: post,
+        }),
+      );
+      await this.imageRepo.save(imageEntities);
+    }
+
+    // 파일 전체 삭제 후 재등록
+    if (post.files?.length) {
+      await this.fileRepo.update(
+        { post: { post_id: postId } },
+        { is_delete: true },
+      );
+    }
+    const timestamp = Date.now();
+    const baseDir = 'uploads';
+
+    const fileEntities = files.map((file) => {
+      const ext = extname(file.originalname);
+      const filePath = `${baseDir}/${userId}/${ext}/${timestamp}-${uuid()}`;
+
+      return this.fileRepo.create({
+        file_title: file.originalname,
+        file_path: filePath,
+        file_size: file.size,
+        file_type: file.mimetype,
+        post,
+      });
+    });
+
+    await this.fileRepo.save(fileEntities);
   }
 }
