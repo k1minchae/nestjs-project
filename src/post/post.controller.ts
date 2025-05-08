@@ -2,6 +2,7 @@
 import {
   Body,
   Controller,
+  Delete,
   Get,
   Param,
   ParseIntPipe,
@@ -149,5 +150,23 @@ export class PostController {
     console.log('DTO 확인@@@@: ', dto);
     await this.postService.updatePost(postId, req.user.user_id, dto, files);
     return { message: '게시글이 수정되었습니다.' };
+  }
+
+  // 게시글 삭제
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @Delete(':postId')
+  @ApiOperation({
+    summary: '게시글 삭제',
+    description: '작성자만 삭제할 수 있습니다.',
+  })
+  @ApiParam({ name: 'postId', type: Number })
+  @ApiResponse({ status: 200, description: '게시글 삭제 성공' })
+  async deletePost(
+    @Param('postId', ParseIntPipe) postId: number,
+    @Req() req: any,
+  ) {
+    await this.postService.deletePost(postId, req.user.user_id);
+    return { message: '게시글이 삭제되었습니다.' };
   }
 }

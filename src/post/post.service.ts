@@ -187,7 +187,7 @@ export class PostService {
       relations: ['user'],
     });
 
-    if (!post) throw new Error('게시글이 존재하지 않습니다.');
+    if (!post) throw new NotFoundException('게시글이 존재하지 않습니다.');
 
     const [files, images, likes, comments] = await Promise.all([
       this.fileRepo.find({
@@ -346,5 +346,43 @@ export class PostService {
     });
 
     await this.fileRepo.save(fileEntities);
+  }
+
+  // 게시글 삭제
+  // soft delete 처리
+  async deletePost(postId: number, userId: number): Promise<void> {
+    const post = await this.postRepo.findOne({
+      where: { post_id: postId },
+      relations: ['user', 'images', 'files'],
+    });
+
+    if (!post || post.is_delete) {
+      throw new NotFoundException('게시글이 존재하지 않습니다.');
+    }
+
+    if (post.user.user_id !== userId) {
+      throw new ForbiddenException('삭제 권한이 없습니다.');
+    }
+
+    // 게시글 soft delete
+    post.is_delete = true;
+    post.updated_at = new Date();
+    await this.postRepo.save(post);
+
+    // 첨부 이미지 soft delete
+    if (post.images?.length) {
+      await this.imageRepo.update(
+        { post: { post_id: postId } },
+        { is_delete: true },
+      );
+    }
+
+    // 첨부 파일 soft delete
+    if (post.files?.length) {
+      await this.fileRepo.update(
+        { post: { post_id: postId } },
+        { is_delete: true },
+      );
+    }
   }
 }
