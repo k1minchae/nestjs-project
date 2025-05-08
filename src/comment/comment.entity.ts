@@ -1,15 +1,23 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Post } from 'src/post/post.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 
-@Entity("Comment")
+@Entity('Comment')
 export class Comment {
-  @PrimaryGeneratedColumn({ type: "bigint" })
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   comment_id: number;
 
   @Column()
   user_id: number;
 
-  @Column()
-  post_id: number;
+  @ManyToOne(() => Post, (post) => post.comments)
+  @JoinColumn({ name: 'post_id' })
+  post: Post;
 
   @Column({ nullable: true })
   parent_comment_id: number;

@@ -2,6 +2,7 @@ import { Like } from 'src/like/like.entity';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 import { Files } from 'src/files/file.entity';
 import { Images } from 'src/files/image.entity';
+import { Comment } from 'src/comment/comment.entity';
 
 @Entity('Post')
 export class Post {
@@ -28,8 +29,10 @@ export class Post {
 
   @Column({ nullable: true })
   updated_at?: Date;
-  comment_count: number;
   view_count: number;
+
+  @OneToMany(() => Comment, (comment) => comment.post)
+  comments: Comment[];
 
   @OneToMany(() => Like, (like) => like.post)
   likes: Like[];
