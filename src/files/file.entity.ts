@@ -1,12 +1,16 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Post } from 'src/post/post.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 
-@Entity("File")
-export class File {
-  @PrimaryGeneratedColumn({ type: "bigint" })
+@Entity('File')
+export class Files {
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   file_id: number;
-
-  @Column()
-  post_id: number;
 
   @Column({ length: 56 })
   file_title: string;
@@ -22,4 +26,8 @@ export class File {
 
   @Column({ default: false })
   is_delete: boolean;
+
+  @ManyToOne(() => Post, (post) => post.files)
+  @JoinColumn({ name: 'post_id' })
+  post: Post;
 }

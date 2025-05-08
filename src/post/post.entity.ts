@@ -1,5 +1,7 @@
 import { Like } from 'src/like/like.entity';
 import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
+import { Files } from 'src/files/file.entity';
+import { Images } from 'src/files/image.entity';
 
 @Entity('Post')
 export class Post {
@@ -31,4 +33,10 @@ export class Post {
 
   @OneToMany(() => Like, (like) => like.post)
   likes: Like[];
+
+  @OneToMany(() => Files, (files) => files.post, { cascade: true })
+  files: Files[];
+
+  @OneToMany(() => Images, (images) => images.post, { cascade: true })
+  images: Images[];
 }

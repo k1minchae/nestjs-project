@@ -1,8 +1,15 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Post } from 'src/post/post.entity';
+import {
+  Entity,
+  PrimaryGeneratedColumn,
+  Column,
+  ManyToOne,
+  JoinColumn,
+} from 'typeorm';
 
-@Entity("Image")
-export class Image {
-  @PrimaryGeneratedColumn({ type: "bigint" })
+@Entity('Images')
+export class Images {
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   image_id: number;
 
   @Column()
@@ -13,4 +20,8 @@ export class Image {
 
   @Column({ default: false })
   is_delete: boolean;
+
+  @ManyToOne(() => Post, (post) => post.images)
+  @JoinColumn({ name: 'post_id' })
+  post: Post;
 }
