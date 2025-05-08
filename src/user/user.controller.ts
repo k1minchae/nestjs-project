@@ -10,6 +10,7 @@ import {
   Res,
   Param,
   UseGuards,
+  Query,
 } from '@nestjs/common';
 import { Request } from 'express';
 import { UserService } from './user.service';
@@ -23,6 +24,7 @@ import {
   ApiBearerAuth,
   ApiOperation,
   ApiParam,
+  ApiQuery,
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
@@ -88,6 +90,27 @@ export class UserController {
     };
   }
 
+  // 내가 작성한 게시글/댓글 조회
+  @Get('my-activity')
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '내가 작성한 게시글 및 댓글 조회' })
+  @ApiQuery({
+    name: 'type',
+    required: true,
+    enum: ['posts', 'comments', 'both'],
+    description: '조회할 항목: posts, comments, both 중 하나',
+  })
+  async getMyPostsAndComments(
+    @Query('type') type: 'posts' | 'comments' | 'both',
+    @Req() req: any,
+  ) {
+    const userId = req.user.user_id;
+    console.log('userId###@@:', userId);
+    return this.userService.getMyPostsAndComments(userId, type);
+  }
+
+  // 유저 정보 조회
   @UseGuards(AuthGuard('jwt'))
   @Get(':id')
   @ApiBearerAuth()

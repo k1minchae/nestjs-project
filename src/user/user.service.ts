@@ -8,6 +8,9 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { User } from './user.entity';
+import { Post } from '../post/post.entity';
+import { Comment } from '../comment/comment.entity';
+
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
@@ -19,6 +22,8 @@ export class UserService {
   constructor(
     @InjectRepository(User)
     private readonly userRepo: Repository<User>,
+    @InjectRepository(Post) private postRepo: Repository<Post>,
+    @InjectRepository(Comment) private commentRepo: Repository<Comment>,
   ) {}
 
   /**
@@ -76,6 +81,41 @@ export class UserService {
     }
 
     return user;
+  }
+
+  /**
+   * 내가 작성한 게시글 및 댓글 조회
+   */
+  async getMyPostsAndComments(
+    userId: number,
+    type: 'posts' | 'comments' | 'both',
+  ) {
+    console.log('서비스@@ userId: ', userId);
+    const user = await this.userRepo.findOne({ where: { user_id: userId } });
+    if (!user) throw new NotFoundException('사용자가 존재하지 않습니다.');
+    console.log('서비스@@ user: ', user);
+    let posts: Post[] = [];
+    let comments: Comment[] = [];
+
+    if (type === 'posts' || type === 'both') {
+      posts = await this.postRepo.find({
+        where: { user: { user_id: userId }, is_delete: false },
+        order: { created_at: 'DESC' },
+      });
+    }
+
+    if (type === 'comments' || type === 'both') {
+      comments = await this.commentRepo.find({
+        where: { user: { user_id: userId }, is_delete: false },
+        order: { created_at: 'DESC' },
+        relations: ['post'],
+      });
+    }
+
+    return {
+      posts,
+      comments,
+    };
   }
 
   /**
