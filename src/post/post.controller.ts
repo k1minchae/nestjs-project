@@ -3,6 +3,7 @@ import {
   Body,
   Controller,
   Get,
+  Param,
   Post,
   Query,
   Req,
@@ -21,16 +22,19 @@ import {
   ApiConsumes,
   ApiBody,
   ApiBearerAuth,
+  ApiParam,
 } from '@nestjs/swagger';
 import { AuthGuard } from '@nestjs/passport';
 import { FilesInterceptor } from '@nestjs/platform-express';
 import { CreatePostDto } from './dto/post.create.dto';
+import { PostDetailResponseDto } from './dto/post.detail.response.dto';
 
 @ApiTags('Post')
 @Controller('/post')
 export class PostController {
   constructor(private readonly postService: PostService) {}
 
+  // 전체 게시글 조회
   @Get()
   @ApiOperation({ summary: '게시글 목록 조회' })
   @ApiQuery({ name: 'sort', enum: ['recent', 'popular'], required: false })
@@ -41,6 +45,7 @@ export class PostController {
     return this.postService.getPostList(query);
   }
 
+  // 게시글 생성
   @UseGuards(AuthGuard('jwt'))
   @Post()
   @ApiBearerAuth()
@@ -78,5 +83,28 @@ export class PostController {
     const userId = req.user.user_id;
     console.log('토큰잘들어왔는지 확인@@: ', userId);
     return this.postService.createPost(dto, files, userId);
+  }
+
+  // 게시글 상세 조회
+  @UseGuards(AuthGuard('jwt'))
+  @ApiBearerAuth()
+  @Get(':id')
+  @ApiOperation({
+    summary: '게시글 상세 조회',
+    description:
+      '게시글 내용, 첨부파일, 이미지, 작성자, 좋아요 수, 내가 좋아요 눌렀는지 여부, 댓글 및 대댓글까지 조회합니다.',
+  })
+  @ApiParam({ name: 'id', description: '게시글 ID', type: Number })
+  @ApiResponse({
+    status: 200,
+    description: '게시글 상세 조회 성공',
+    type: PostDetailResponseDto,
+  })
+  async getPostDetail(
+    @Param('id') id: number,
+    @Req() req: any,
+  ): Promise<PostDetailResponseDto> {
+    const userId = req.user.user_id;
+    return this.postService.getPostDetail(id, userId);
   }
 }

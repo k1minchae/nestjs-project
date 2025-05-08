@@ -1,5 +1,5 @@
 // src/post/post.service.ts
-import { Injectable } from '@nestjs/common';
+import { Injectable, NotFoundException } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Post } from './post.entity';
 import { Repository } from 'typeorm';
@@ -8,8 +8,17 @@ import { PostQueryListDto } from './dto/post.query.list.dto';
 import { CreatePostDto } from './dto/post.create.dto';
 import { Files } from '../files/file.entity';
 import { Images } from '../files/image.entity';
+import { Like } from '../like/like.entity';
+import { Comment } from '../comment/comment.entity';
 import { v4 as uuid } from 'uuid';
 import { extname } from 'path';
+import {
+  ParentCommentDto,
+  PostDetailResponseDto,
+  ReplyCommentDto,
+} from './dto/post.detail.response.dto';
+import { User } from 'src/user/user.entity';
+import { find } from 'rxjs';
 
 @Injectable()
 export class PostService {
@@ -22,6 +31,12 @@ export class PostService {
 
     @InjectRepository(Images)
     private readonly imageRepo: Repository<Images>,
+    @InjectRepository(Like)
+    private readonly likeRepo: Repository<Like>,
+    @InjectRepository(Comment)
+    private readonly commentRepo: Repository<Comment>,
+    @InjectRepository(User)
+    private readonly userRepo: Repository<User>,
   ) {}
 
   private calculatePopularityScore(
@@ -103,10 +118,12 @@ export class PostService {
     files: Express.Multer.File[],
     userId: number,
   ) {
+    const user = await this.userRepo.findOneByOrFail({ user_id: userId });
+
     const post = this.postRepo.create({
       post_title: dto.post_title,
       post_content: dto.post_content,
-      user_id: userId,
+      user,
       created_at: new Date(),
     });
 
@@ -154,5 +171,91 @@ export class PostService {
     }
 
     return savedPost;
+  }
+
+  // 게시글 상세 보기
+  async getPostDetail(
+    postId: number,
+    userId: number,
+  ): Promise<PostDetailResponseDto> {
+    const post = await this.postRepo.findOne({
+      where: { post_id: postId, is_delete: false },
+      relations: ['user'],
+    });
+
+    if (!post) throw new Error('게시글이 존재하지 않습니다.');
+
+    const [files, images, likes, comments] = await Promise.all([
+      this.fileRepo.find({
+        where: { post: { post_id: postId }, is_delete: false },
+      }),
+      this.imageRepo.find({
+        where: { post: { post_id: postId }, is_delete: false },
+      }),
+      this.likeRepo.find({ where: { post: { post_id: postId } } }),
+      this.commentRepo.find({
+        where: { post: { post_id: postId }, is_delete: false },
+        relations: ['user', 'parent', 'parent.user'],
+        order: { created_at: 'ASC' },
+      }),
+    ]);
+
+    const likeCount = likes.filter((l) => l.liked).length;
+    const isLikedByMe = likes.some((l) => l.user.user_id === userId && l.liked);
+
+    const parentComments: ParentCommentDto[] = comments
+      .filter((c) => !c.parent)
+      .map((parent) => ({
+        comment_id: parent.comment_id,
+        content: parent.comment_content,
+        created_at: parent.created_at,
+        user: {
+          user_id: parent.user.user_id,
+          nickname: parent.user.nickname,
+        },
+        replies: comments
+          .filter((c) => c.parent?.comment_id === parent.comment_id)
+          .map(
+            (reply): ReplyCommentDto => ({
+              comment_id: reply.comment_id,
+              content: reply.comment_content,
+              created_at: reply.created_at,
+              parent_comment_id: parent.comment_id,
+              parent_user: {
+                user_id: parent.user.user_id,
+                nickname: parent.user.nickname,
+              },
+              user: {
+                user_id: reply.user.user_id,
+                nickname: reply.user.nickname,
+              },
+            }),
+          ),
+      }));
+
+    return {
+      id: post.post_id,
+      title: post.post_title,
+      content: post.post_content,
+      view_count: post.view_count ?? 0,
+      like_count: likeCount,
+      is_liked_by_me: isLikedByMe,
+      author: {
+        user_id: post.user.user_id,
+        nickname: post.user.nickname,
+      },
+      files: files.map((f) => ({
+        file_id: f.file_id,
+        file_title: f.file_title,
+        file_path: f.file_path,
+        file_type: f.file_type,
+        file_size: f.file_size,
+      })),
+      images: images.map((i) => ({
+        image_id: i.image_id,
+        image_url: i.image_url,
+      })),
+      comments: parentComments,
+    };
   }
 }

@@ -17,6 +17,9 @@ export class Post {
   @PrimaryGeneratedColumn({ type: 'bigint' })
   post_id: number;
 
+  @Column()
+  user_id: number; // DB에는 이 값이 저장됨
+
   @ManyToOne(() => User, (user) => user.posts, { eager: false })
   @JoinColumn({ name: 'user_id' }) // 외래키 컬럼 명시
   user: User;
