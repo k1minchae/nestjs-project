@@ -5,6 +5,7 @@ import {
   Post,
   Req,
   Get,
+  Res,
   Param,
   UseGuards,
 } from '@nestjs/common';
@@ -14,6 +15,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import { AuthService } from '../auth/auth.service';
 import { AuthGuard } from '@nestjs/passport';
+import { Response } from 'express';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -51,42 +53,29 @@ export class UserController {
   }
 
   @Post('/login')
-  @ApiOperation({
-    summary: '로그인',
-    description: '이메일과 비밀번호로 로그인합니다.',
-  })
-  @ApiResponse({
-    status: 200,
-    description: '로그인 성공',
-    schema: {
-      example: {
-        message: '로그인 성공',
-        access_token: 'eyJhbGciOi...',
-        refresh_token: 'eyJhbGciOi...',
-        user: {
-          id: 1,
-          email: 'user@example.com',
-        },
-      },
-    },
-  })
-  async login(@Body() dto: LoginDto) {
-    // 1. 유저 인증
+  async login(
+    @Body() dto: LoginDto,
+    @Res({ passthrough: true }) res: Response, // ✅ Express 응답 객체 사용
+  ) {
     const user = await this.userService.validateUser(dto);
-
-    // 2. 토큰 발급
     const tokens = this.authService.generateTokens({
       user_id: user.user_id,
       email: user.email,
     });
 
-    // 3. refresh token 저장
     await this.authService.saveRefreshToken(user.user_id, tokens.refreshToken);
+
+    // ✅ Refresh Token을 HttpOnly 쿠키에 설정
+    res.cookie('refresh_token', tokens.refreshToken, {
+      httpOnly: true,
+      secure: true, // ✅ HTTPS에서만 전달
+      sameSite: 'strict', // ✅ CSRF 방지
+      maxAge: 7 * 24 * 60 * 60 * 1000, // 7일
+    });
 
     return {
       message: '로그인 성공',
       access_token: tokens.accessToken,
-      refresh_token: tokens.refreshToken,
       user: {
         id: user.user_id,
         email: user.email,

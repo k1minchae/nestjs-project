@@ -13,6 +13,13 @@ config({ path: envFile });
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule);
+
+  // ✅ CORS 설정 (프론트에서 쿠키 받기 허용)
+  app.enableCors({
+    origin: 'http://localhost:3000', // 프론트 도메인 (React, Vite 등)
+    credentials: true, // ✅ 쿠키 포함한 요청 허용
+  });
+
   app.useGlobalPipes(new ValidationPipe());
 
   // 개발 환경일 경우 요청 로그 미들웨어 활성화
