@@ -3,6 +3,7 @@ import {
   Controller,
   NotFoundException,
   Post,
+  Patch,
   Req,
   Get,
   Res,
@@ -23,6 +24,7 @@ import {
   ApiResponse,
   ApiTags,
 } from '@nestjs/swagger';
+import { UserUpdateDto } from './dto/user.update.dto';
 
 interface JwtPayload {
   user_id: number;
@@ -134,5 +136,47 @@ export class UserController {
     // console.log('user in request:', req.user);
     await this.authService.removeRefreshToken(req.user.user_id);
     return { message: '로그아웃 완료' };
+  }
+
+  @UseGuards(AuthGuard('jwt'))
+  @Patch('/me')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '내 프로필 수정',
+    description:
+      '이름(name)과 닉네임(nickname)만 수정할 수 있으며, 이메일은 수정할 수 없습니다.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '수정 성공',
+    schema: {
+      example: {
+        message: '프로필이 수정되었습니다.',
+        user: {
+          user_id: 1,
+          name: '홍길동',
+          nickname: '길동이',
+          email: 'hong@example.com',
+        },
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: '인증 실패 (토큰 없음 또는 만료)' })
+  async updateMyProfile(
+    @Req() req: Request & { user: { user_id: number } },
+    @Body() dto: UserUpdateDto,
+  ) {
+    const userId = req.user.user_id;
+    const updated = await this.userService.updateProfile(userId, dto);
+
+    return {
+      message: '프로필이 수정되었습니다.',
+      user: {
+        user_id: updated.user_id,
+        name: updated.name,
+        nickname: updated.nickname,
+        email: updated.email,
+      },
+    };
   }
 }

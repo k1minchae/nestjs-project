@@ -11,6 +11,7 @@ import { User } from './user.entity';
 import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
+import { UserUpdateDto } from './dto/user.update.dto';
 
 @Injectable()
 export class UserService {
@@ -83,5 +84,26 @@ export class UserService {
     return this.userRepo.findOne({
       where: { user_id: id, is_delete: false },
     });
+  }
+
+  /**
+   * 사용자 정보 수정
+   * - 이메일은 수정 불가
+   */
+  async updateProfile(userId: number, dto: UserUpdateDto): Promise<User> {
+    const user = await this.userRepo.findOne({
+      where: { user_id: userId, is_delete: false },
+    });
+
+    if (!user) {
+      throw new NotFoundException('사용자를 찾을 수 없습니다.');
+    }
+
+    // 이메일은 수정 불가
+    user.name = dto.name ?? user.name;
+    user.nickname = dto.nickname ?? user.nickname;
+    user.updated_at = new Date();
+
+    return this.userRepo.save(user);
   }
 }
