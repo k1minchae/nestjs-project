@@ -6,6 +6,7 @@ import {
   Patch,
   Req,
   Get,
+  Delete,
   Res,
   Param,
   UseGuards,
@@ -17,6 +18,7 @@ import { LoginDto } from './dto/login.dto';
 import { AuthService } from '../auth/auth.service';
 import { AuthGuard } from '@nestjs/passport';
 import { Response } from 'express';
+import { DeleteUserDto } from './dto/user.delete.dto';
 import {
   ApiBearerAuth,
   ApiOperation,
@@ -138,6 +140,7 @@ export class UserController {
     return { message: '로그아웃 완료' };
   }
 
+  // 내 정보 수정
   @UseGuards(AuthGuard('jwt'))
   @Patch('/me')
   @ApiBearerAuth()
@@ -178,5 +181,31 @@ export class UserController {
         email: updated.email,
       },
     };
+  }
+
+  // 회원 탈퇴 (소프트 삭제)
+  @UseGuards(AuthGuard('jwt'))
+  @Delete('/me')
+  @ApiBearerAuth()
+  @ApiOperation({
+    summary: '회원 탈퇴',
+    description: '비밀번호를 재확인한 후 탈퇴합니다.',
+  })
+  @ApiResponse({
+    status: 200,
+    description: '탈퇴 완료',
+    schema: {
+      example: {
+        message: '회원 탈퇴가 완료되었습니다.',
+      },
+    },
+  })
+  @ApiResponse({ status: 401, description: '인증 실패 또는 비밀번호 불일치' })
+  async deleteMyAccount(
+    @Req() req: Request & { user: { user_id: number } },
+    @Body() dto: DeleteUserDto,
+  ) {
+    await this.userService.softDelete(req.user.user_id, dto);
+    return { message: '회원 탈퇴가 완료되었습니다.' };
   }
 }

@@ -12,6 +12,7 @@ import { CreateUserDto } from './dto/create-user.dto';
 import { LoginDto } from './dto/login.dto';
 import * as bcrypt from 'bcrypt';
 import { UserUpdateDto } from './dto/user.update.dto';
+import { DeleteUserDto } from './dto/user.delete.dto';
 
 @Injectable()
 export class UserService {
@@ -105,5 +106,33 @@ export class UserService {
     user.updated_at = new Date();
 
     return this.userRepo.save(user);
+  }
+
+  /**
+   * 사용자 소프트 삭제
+   * - is_delete 값을 true로 변경
+   * - refresh_token 초기화
+   */
+  async softDelete(userId: number, dto: DeleteUserDto): Promise<void> {
+    const user = await this.userRepo.findOne({
+      where: { user_id: userId, is_delete: false },
+    });
+
+    if (!user) throw new NotFoundException('사용자를 찾을 수 없습니다.');
+
+    // 이메일이 일치하지 않으면 거부
+    if (user.email !== dto.email) {
+      throw new UnauthorizedException('이메일이 일치하지 않습니다.');
+    }
+
+    const isMatch = await bcrypt.compare(dto.password, user.password);
+    if (!isMatch) {
+      throw new UnauthorizedException('비밀번호가 일치하지 않습니다.');
+    }
+
+    // Soft Delete + Refresh Token 무효화
+    user.is_delete = true;
+    user.refresh_token = null;
+    await this.userRepo.save(user);
   }
 }
