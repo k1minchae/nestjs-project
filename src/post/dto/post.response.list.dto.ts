@@ -22,4 +22,10 @@ export class PostResponseListDto {
 
   @ApiProperty({ required: false })
   popularity_score?: number;
+
+  @ApiProperty({ required: false })
+  image_count?: number;
+
+  @ApiProperty({ required: false })
+  file_count?: number;
 }

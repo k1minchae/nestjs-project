@@ -40,7 +40,7 @@ export class PostService {
         order: { created_at: 'DESC' },
         skip,
         take: limit,
-        relations: ['likes', 'comments'], // ✅ 연관 로드
+        relations: ['likes', 'comments', 'images', 'files'],
       });
 
       return posts.map((post) => ({
@@ -49,6 +49,8 @@ export class PostService {
         view_count: post.view_count ?? 0,
         like_count: post.likes?.length ?? 0,
         comment_count: post.comments?.length ?? 0,
+        image_count: post.images?.length ?? 0,
+        file_count: post.files?.length ?? 0,
         created_at: post.created_at,
       }));
     }
@@ -58,6 +60,8 @@ export class PostService {
       .createQueryBuilder('post')
       .leftJoin('post.comments', 'comment')
       .leftJoin('post.likes', 'like')
+      .leftJoinAndSelect('post.images', 'image')
+      .leftJoinAndSelect('post.files', 'file')
       .where('post.is_delete = false')
       .loadRelationCountAndMap('post.comment_count', 'post.comments')
       .loadRelationCountAndMap('post.like_count', 'post.likes')
@@ -66,6 +70,8 @@ export class PostService {
         'popularity_score',
       )
       .groupBy('post.post_id')
+      .addGroupBy('image.post_id')
+      .addGroupBy('file.post_id')
       .orderBy('popularity_score', 'DESC')
       .skip(skip)
       .take(limit)
@@ -77,6 +83,8 @@ export class PostService {
       view_count: post.view_count ?? 0,
       like_count: post.like_count ?? 0,
       comment_count: post.comment_count ?? 0,
+      image_count: post.images?.length ?? 0,
+      file_count: post.files?.length ?? 0,
       created_at: post.created_at,
       popularity_score: this.calculatePopularityScore(
         post.view_count ?? 0,
