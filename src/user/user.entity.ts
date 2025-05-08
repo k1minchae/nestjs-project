@@ -1,4 +1,5 @@
-import { Entity, PrimaryGeneratedColumn, Column } from 'typeorm';
+import { Like } from 'src/like/like.entity';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 
 @Entity('User')
 export class User {
@@ -26,6 +27,9 @@ export class User {
   @Column({ nullable: true })
   updated_at?: Date;
 
-  @Column({ nullable: true, type: 'text' }) // ← type도 명시하면 더 안전
+  @Column({ nullable: true, type: 'text' })
   refresh_token: string | null;
+
+  @OneToMany(() => Like, (like) => like.user)
+  likes: Like[];
 }

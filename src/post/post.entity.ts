@@ -1,8 +1,9 @@
-import { Entity, PrimaryGeneratedColumn, Column } from "typeorm";
+import { Like } from 'src/like/like.entity';
+import { Entity, PrimaryGeneratedColumn, Column, OneToMany } from 'typeorm';
 
-@Entity("Post")
+@Entity('Post')
 export class Post {
-  @PrimaryGeneratedColumn({ type: "bigint" })
+  @PrimaryGeneratedColumn({ type: 'bigint' })
   post_id: number;
 
   @Column()
@@ -25,4 +26,9 @@ export class Post {
 
   @Column({ nullable: true })
   updated_at?: Date;
+  comment_count: number;
+  view_count: number;
+
+  @OneToMany(() => Like, (like) => like.post)
+  likes: Like[];
 }
