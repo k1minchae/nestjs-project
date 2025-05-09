@@ -1,4 +1,8 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  ForbiddenException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { Comment } from './comment.entity';
@@ -66,5 +70,25 @@ export class CommentService {
     };
 
     return responseDto;
+  }
+
+  // 댓글 삭제
+  async deleteComment(commentId: number, userId: number): Promise<void> {
+    const comment = await this.commentRepo.findOne({
+      where: { comment_id: commentId },
+      relations: ['user'],
+    });
+
+    if (!comment || comment.is_delete) {
+      throw new NotFoundException('댓글이 존재하지 않습니다.');
+    }
+
+    if (comment.user.user_id !== userId) {
+      throw new ForbiddenException('댓글 삭제 권한이 없습니다.');
+    }
+
+    comment.is_delete = true;
+    comment.updated_at = new Date();
+    await this.commentRepo.save(comment);
   }
 }

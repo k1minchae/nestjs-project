@@ -200,10 +200,13 @@ export class PostService {
       this.likeRepo.find({ where: { post: { post_id: postId } } }),
       this.commentRepo.find({
         where: { post: { post_id: postId }, is_delete: false },
-        relations: ['user', 'parent', 'parent.user'],
+        relations: ['user', 'parent', 'parent.user', 'replies', 'replies.user'],
         order: { created_at: 'ASC' },
       }),
     ]);
+
+    console.log('댓글 로드 결과 @@@@@@@@@@@@@');
+    console.log(comments);
 
     const likeCount = likes.filter((l) => l.liked).length;
     const isLikedByMe = likes.some((l) => l.user.user_id === userId && l.liked);
@@ -218,28 +221,26 @@ export class PostService {
           user_id: parent.user.user_id,
           nickname: parent.user.nickname,
         },
-        // 삭제된 댓글은 제외
-        replies: comments
-          .filter((c) => c.parent?.comment_id === parent.comment_id)
-          .map(
-            (reply): ReplyCommentDto => ({
-              comment_id: reply.comment_id,
-              content: reply.is_delete
-                ? '삭제된 댓글입니다'
-                : reply.comment_content,
-              created_at: reply.created_at,
-              parent_comment_id: parent.comment_id,
-              parent_user: {
-                user_id: parent.user.user_id,
-                nickname: parent.user.nickname,
-              },
-              user: {
-                user_id: reply.user.user_id,
-                nickname: reply.user.nickname,
-              },
-            }),
-          ),
+        replies: (parent.replies ?? []).map((reply) => ({
+          comment_id: reply.comment_id,
+          content:
+            reply.is_delete === false
+              ? reply.comment_content
+              : '삭제된 댓글입니다',
+          created_at: reply.created_at,
+          parent_comment_id: parent.comment_id,
+          parent_user: {
+            user_id: parent.user.user_id,
+            nickname: parent.user.nickname,
+          },
+          user: {
+            user_id: reply.user.user_id,
+            nickname: reply.user.nickname,
+          },
+        })),
       }));
+
+    console.log('부모 댓글 @@@@@@@@@@@@@@', parentComments);
 
     // 게시글 조회수 증가
     await this.postRepo.increment({ post_id: postId }, 'views', 1);
