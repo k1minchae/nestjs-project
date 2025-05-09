@@ -16,6 +16,11 @@ export class LikeService {
     private readonly userRepo: Repository<User>,
   ) {}
 
+  /**
+   * 좋아요 토글
+   * - 이미 좋아요가 눌린 경우: 좋아요 취소
+   * - 좋아요가 눌리지 않은 경우: 좋아요 추가
+   */
   async toggleLike(
     postId: number,
     userId: number,

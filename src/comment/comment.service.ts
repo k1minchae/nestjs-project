@@ -22,6 +22,9 @@ export class CommentService {
     private readonly userRepo: Repository<User>,
   ) {}
 
+  /**
+   * 댓글 작성
+   */
   async createComment(
     postId: number,
     userId: number,
@@ -72,7 +75,9 @@ export class CommentService {
     return responseDto;
   }
 
-  // 댓글 삭제
+  /**
+   * 댓글 삭제
+   */
   async deleteComment(commentId: number, userId: number): Promise<void> {
     const comment = await this.commentRepo.findOne({
       where: { comment_id: commentId },

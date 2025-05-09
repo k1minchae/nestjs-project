@@ -1,4 +1,3 @@
-// src/post/post.service.ts
 import {
   ForbiddenException,
   Injectable,
@@ -29,14 +28,10 @@ export class PostService {
   constructor(
     @InjectRepository(Post)
     private readonly postRepo: Repository<Post>,
-
     @InjectRepository(Files)
     private readonly fileRepo: Repository<Files>,
-
-    @InjectRepository(Images)
-    private readonly imageRepo: Repository<Images>,
-    @InjectRepository(Like)
-    private readonly likeRepo: Repository<Like>,
+    @InjectRepository(Images) private readonly imageRepo: Repository<Images>,
+    @InjectRepository(Like) private readonly likeRepo: Repository<Like>,
     @InjectRepository(Comment)
     private readonly commentRepo: Repository<Comment>,
     @InjectRepository(User)
@@ -51,6 +46,11 @@ export class PostService {
     return viewCount + likeCount * 2 + commentCount * 1.5;
   }
 
+  /**
+   * 게시글 목록조회
+   * - 인기순/최신순 정렬
+   * - 페이지네이션
+   */
   async getPostList(query: PostQueryListDto): Promise<PostResponseListDto[]> {
     const { sort, page, limit } = query;
     const skip = (page - 1) * limit;
@@ -115,8 +115,10 @@ export class PostService {
     }));
   }
 
-  // 게시글 작성
-  // 파일 업로드 및 이미지 URL 등록
+  /**
+   * 게시글 작성
+   * - 파일/이미지 업로드 가능
+   */
   async createPost(
     dto: CreatePostDto,
     files: Express.Multer.File[],
@@ -177,7 +179,12 @@ export class PostService {
     return savedPost;
   }
 
-  // 게시글 상세 보기
+  /**
+   * 게시글 상세조회
+   * - 조회수 증가
+   * - 내가 좋아요 누른 게시글인지 확인
+   * - 댓글 및 대댓글 조회
+   */
   async getPostDetail(postId: number): Promise<PostDetailResponseDto> {
     const post = await this.postRepo.findOne({
       where: { post_id: postId, is_delete: false },
@@ -186,6 +193,7 @@ export class PostService {
 
     if (!post) throw new NotFoundException('게시글이 존재하지 않습니다.');
 
+    // 게시글에 딸린 정보 조회
     const [files, images, likes, comments] = await Promise.all([
       this.fileRepo.find({
         where: { post: { post_id: postId }, is_delete: false },
@@ -207,6 +215,7 @@ export class PostService {
     // console.log('댓글 로드 결과 @@@@@@@@@@@@@');
     // console.log(comments);
 
+    // 좋아요 수 확인
     const likeCount = likes.filter((l) => l.liked).length;
 
     // 내가 좋아요 누른 게시글인지 확인
@@ -214,6 +223,7 @@ export class PostService {
       (l) => l.user.user_id === post.user.user_id && l.liked,
     );
 
+    // 댓글 조회 (부모 댓글 -> 답댓글)
     const parentComments: ParentCommentDto[] = comments
       .filter((c) => !c.parent)
       .map((parent) => ({
@@ -274,7 +284,11 @@ export class PostService {
     };
   }
 
-  // 게시글 수정
+  /**
+   * 게시글 수정
+   * - 게시글 제목, 내용 수정 가능
+   * - 첨부파일, 이미지 수정 가능
+   */
   async updatePost(
     postId: number,
     userId: number,
@@ -353,8 +367,10 @@ export class PostService {
     await this.fileRepo.save(fileEntities);
   }
 
-  // 게시글 삭제
-  // soft delete 처리
+  /**
+   * 게시글 삭제
+   * - soft delete 처리
+   */
   async deletePost(postId: number, userId: number): Promise<void> {
     const post = await this.postRepo.findOne({
       where: { post_id: postId },
@@ -391,7 +407,9 @@ export class PostService {
     }
   }
 
-  // 게시글 검색 기능
+  /**
+   * 게시글 검색
+   */
   async searchPosts(
     query: string,
     type: 'title' | 'content' | 'nickname',
