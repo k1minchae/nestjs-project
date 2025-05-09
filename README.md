@@ -39,3 +39,11 @@
 4. **Swagger UI 확인**
 
    http://localhost:3000/api 에서 Swagger UI를 통해 API를 확인할 수 있습니다.
+
+<br>
+
+---
+
+### ERD
+
+![erd](./board.png)
