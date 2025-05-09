@@ -20,7 +20,6 @@ import { extname } from 'path';
 import {
   ParentCommentDto,
   PostDetailResponseDto,
-  ReplyCommentDto,
 } from './dto/post.detail.response.dto';
 import { User } from 'src/user/user.entity';
 import { UpdatePostDto } from './dto/post.update.dto';
@@ -179,10 +178,7 @@ export class PostService {
   }
 
   // 게시글 상세 보기
-  async getPostDetail(
-    postId: number,
-    userId: number,
-  ): Promise<PostDetailResponseDto> {
+  async getPostDetail(postId: number): Promise<PostDetailResponseDto> {
     const post = await this.postRepo.findOne({
       where: { post_id: postId, is_delete: false },
       relations: ['user'],
@@ -197,7 +193,10 @@ export class PostService {
       this.imageRepo.find({
         where: { post: { post_id: postId }, is_delete: false },
       }),
-      this.likeRepo.find({ where: { post: { post_id: postId } } }),
+      this.likeRepo.find({
+        where: { post: { post_id: postId } },
+        relations: ['user'],
+      }),
       this.commentRepo.find({
         where: { post: { post_id: postId }, is_delete: false },
         relations: ['user', 'parent', 'parent.user', 'replies', 'replies.user'],
@@ -209,7 +208,11 @@ export class PostService {
     console.log(comments);
 
     const likeCount = likes.filter((l) => l.liked).length;
-    const isLikedByMe = likes.some((l) => l.user.user_id === userId && l.liked);
+
+    // 내가 좋아요 누른 게시글인지 확인
+    const isLikedByMe = likes.some(
+      (l) => l.user.user_id === post.user.user_id && l.liked,
+    );
 
     const parentComments: ParentCommentDto[] = comments
       .filter((c) => !c.parent)

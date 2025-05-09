@@ -133,8 +133,7 @@ export class PostController {
     @Param('id') id: number,
     @Req() req: any,
   ): Promise<PostDetailResponseDto> {
-    const userId = req.user.user_id;
-    return this.postService.getPostDetail(id, userId);
+    return this.postService.getPostDetail(id);
   }
 
   // 게시글 수정
