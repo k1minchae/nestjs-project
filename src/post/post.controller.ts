@@ -85,7 +85,7 @@ export class PostController {
     @UploadedFiles() files: Express.Multer.File[],
   ) {
     const userId = req.user.user_id;
-    console.log('토큰잘들어왔는지 확인@@: ', userId);
+    // console.log('토큰잘들어왔는지 확인@@: ', userId);
     return this.postService.createPost(dto, files, userId);
   }
 
@@ -171,7 +171,7 @@ export class PostController {
     @Req() req: any,
     @UploadedFiles() files: Express.Multer.File[],
   ) {
-    console.log('DTO 확인@@@@: ', dto);
+    // console.log('DTO 확인@@@@: ', dto);
     await this.postService.updatePost(postId, req.user.user_id, dto, files);
     return { message: '게시글이 수정되었습니다.' };
   }

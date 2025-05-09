@@ -204,8 +204,8 @@ export class PostService {
       }),
     ]);
 
-    console.log('댓글 로드 결과 @@@@@@@@@@@@@');
-    console.log(comments);
+    // console.log('댓글 로드 결과 @@@@@@@@@@@@@');
+    // console.log(comments);
 
     const likeCount = likes.filter((l) => l.liked).length;
 
@@ -243,7 +243,7 @@ export class PostService {
         })),
       }));
 
-    console.log('부모 댓글 @@@@@@@@@@@@@@', parentComments);
+    // console.log('부모 댓글 @@@@@@@@@@@@@@', parentComments);
 
     // 게시글 조회수 증가
     await this.postRepo.increment({ post_id: postId }, 'views', 1);
@@ -285,7 +285,7 @@ export class PostService {
       where: { post_id: postId },
       relations: ['user', 'images', 'files'],
     });
-    console.log('수정할 게시글 @@@@: ', post);
+    // console.log('수정할 게시글 @@@@: ', post);
 
     if (!post || post.is_delete)
       throw new NotFoundException('게시글이 존재하지 않습니다.');
@@ -297,7 +297,7 @@ export class PostService {
     post.updated_at = new Date();
     await this.postRepo.save(post);
 
-    console.log('기존 이미지 @@@@: ', post.images);
+    // console.log('기존 이미지 @@@@: ', post.images);
 
     // 이미지 전체 삭제 후 재등록
     if (post.images?.length) {

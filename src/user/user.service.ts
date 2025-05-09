@@ -90,10 +90,10 @@ export class UserService {
     userId: number,
     type: 'posts' | 'comments' | 'both',
   ) {
-    console.log('서비스@@ userId: ', userId);
+    // console.log('서비스@@ userId: ', userId);
     const user = await this.userRepo.findOne({ where: { user_id: userId } });
     if (!user) throw new NotFoundException('사용자가 존재하지 않습니다.');
-    console.log('서비스@@ user: ', user);
+    // console.log('서비스@@ user: ', user);
     let posts: Post[] = [];
     let comments: Comment[] = [];
 
